@@ -2,7 +2,10 @@ module github.com/pulkit-singhall/go-edtech
 
 go 1.22.1
 
-require github.com/gin-gonic/gin v1.9.1
+require (
+	github.com/gin-gonic/gin v1.9.1
+	go.mongodb.org/mongo-driver v1.14.0
+)
 
 require (
 	github.com/bytedance/sonic v1.11.3 // indirect

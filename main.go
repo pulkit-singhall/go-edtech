@@ -10,6 +10,9 @@ import (
 func main() {
 	godotenv.Load(".env")
 	PORT:=os.Getenv("PORT")
+	if PORT==""{
+		PORT="8000"
+	}
 	router := gin.New()
 
 	err:=router.Run(":"+PORT)
