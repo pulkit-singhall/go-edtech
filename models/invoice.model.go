@@ -6,11 +6,11 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-type Rating struct {
+type Invoice struct {
 	ID        primitive.ObjectID `json:"_id" bson:"_id"`
-	Rate      int                `json:"rate" validate:"required"`
-	OwnerID   primitive.ObjectID `json:"ownerID" bson:"ownerID"`
+	UserID    primitive.ObjectID `json:"userID" bson:"userID"`
 	CourseID  primitive.ObjectID `json:"courseID" bson:"courseID"`
+	Amount    int                `json:"amount"`
+	Type      string             `json:"type" validate:"required,eq=CARD|eq=UPI|eq=EMI"`
 	CreatedAt time.Time          `json:"createdAt" bson:"createdAt"`
-	UpdatedAt time.Time          `json:"updatedAt" bson:"updatedAt"`
 }
