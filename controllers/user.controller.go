@@ -59,7 +59,53 @@ func Signup() gin.HandlerFunc {
 
 func Login() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		
+		_, cancel := context.WithTimeout(context.Background(), time.Second*100)
+		defer cancel()
+		var user *models.User
+		err := c.BindJSON(&user)
+		if err != nil {
+			c.AbortWithStatusJSON(400, gin.H{"error": utils.QueryBodyMissing.Error(), "details": err.Error()})
+			return
+		}
+		if user.Email == "" || user.Password == "" {
+			c.AbortWithStatusJSON(400, gin.H{"error": utils.QueryBodyMissing.Error(),
+				"details": "email or password is missing"})
+			return
+		}
+		usercollection := db.GetCollection("users")
+		var existing *models.User
+		existErr := usercollection.FindOne(context.Background(), bson.M{"email": user.Email}).Decode(&existing)
+		if existErr != nil {
+			c.AbortWithStatusJSON(500, gin.H{"error": utils.UserNotFound.Error(), "detail": existErr.Error()})
+			return
+		}
+		passErr := existing.CheckPassword(user.Password)
+		if passErr != nil {
+			c.AbortWithStatusJSON(402, gin.H{"error": utils.PasswordWrong.Error(), "detail": passErr.Error()})
+			return
+		}
+		token, tokenErr := existing.GenerateToken()
+		if tokenErr != nil {
+			c.AbortWithStatusJSON(415, gin.H{"error": utils.TokenError.Error(), "detail": tokenErr.Error()})
+			return
+		}
+		refresh, refErr := existing.GenerateRefreshToken()
+		if refErr != nil {
+			c.AbortWithStatusJSON(415, gin.H{"error": utils.TokenError.Error(), "detail": refErr.Error()})
+			return
+		}
+		_, updErr := usercollection.UpdateOne(context.Background(), bson.M{"email": user.Email}, bson.M{"$set": bson.M{"token": token, "refresh_token": refresh}})
+		if updErr != nil {
+			c.AbortWithStatusJSON(500, gin.H{"error": utils.InternalServerError.Error(), "detail": updErr.Error()})
+			return
+		}
+		c.SetCookie("token", token, int(time.Hour*48), "/", "localhost", true, true)
+		c.SetCookie("refresh_token", refresh, int(time.Hour*48), "/", "localhost", true, true)
+		c.JSON(200, gin.H{
+			"user":          existing,
+			"token":         token,
+			"refresh_token": refresh,
+		})
 	}
 }
 
@@ -69,19 +115,19 @@ func GetUser() gin.HandlerFunc {
 		defer cancel()
 		userId := c.Param("userID")
 		if userId == "" {
-			c.JSON(400, gin.H{"error": utils.QueryParamMissing, "detail": "User ID is required"})
+			c.AbortWithStatusJSON(400, gin.H{"error": utils.QueryParamMissing, "detail": "User ID is required"})
 			return
 		}
 		userCollection := db.GetCollection("users")
 		id, hexErr := primitive.ObjectIDFromHex(userId)
 		if hexErr != nil {
-			c.JSON(500, gin.H{"error": utils.HexIdError.Error(), "detail": hexErr.Error()})
+			c.AbortWithStatusJSON(500, gin.H{"error": utils.HexIdError.Error(), "detail": hexErr.Error()})
 			return
 		}
 		var user *models.User
 		userErr := userCollection.FindOne(context.Background(), bson.M{"_id": id}).Decode(&user)
 		if userErr != nil {
-			c.JSON(500, gin.H{"error": utils.UserNotFound, "detail": userErr.Error()})
+			c.AbortWithStatusJSON(500, gin.H{"error": utils.UserNotFound, "detail": userErr.Error()})
 			return
 		}
 		c.JSON(200, gin.H{
@@ -97,17 +143,18 @@ func GetAllUsers() gin.HandlerFunc {
 		userCollection := db.GetCollection("users")
 		cur, err := userCollection.Find(context.Background(), bson.M{})
 		if err != nil {
-			c.JSON(500, gin.H{
+			c.AbortWithStatusJSON(500, gin.H{
 				"error":  utils.InternalServerError,
 				"detail": err.Error(),
 			})
+			return
 		}
 		var allUser []*models.User
 		for cur.Next(context.Background()) {
 			var user *models.User
 			decodeErr := cur.Decode(&user)
 			if decodeErr != nil {
-				c.JSON(500, gin.H{"error": utils.InternalServerError, "detail": decodeErr.Error()})
+				c.AbortWithStatusJSON(500, gin.H{"error": utils.InternalServerError, "detail": decodeErr.Error()})
 				return
 			}
 			allUser = append(allUser, user)

@@ -1,8 +1,11 @@
 package models
 
 import (
+	"os"
 	"time"
 
+	"github.com/dgrijalva/jwt-go"
+	"github.com/joho/godotenv"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -33,4 +36,37 @@ func (user *User) CheckPassword(incomingPassword string) error {
 	var password = user.Password
 	err := bcrypt.CompareHashAndPassword([]byte(password), []byte(incomingPassword))
 	return err
+}
+
+func (user *User) GenerateToken() (string, error) {
+	claim := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"email":      user.Email,
+		"first_name": user.First_name,
+		"last_name":  user.Last_name,
+		"exp":        time.Now().Local().Add(time.Hour * 24).Unix(),
+	})
+	godotenv.Load(".env")
+	key:=os.Getenv("TOKEN_KEY")
+	token, err := claim.SignedString([]byte(key))
+	if err!=nil{
+		return "", err
+	}
+	user.Token = token
+	return token, nil
+}
+
+
+func (user *User) GenerateRefreshToken() (string, error) {
+	claim := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"email":      user.Email,
+		"exp":        time.Now().Local().Add(time.Hour * 120).Unix(),
+	})
+	godotenv.Load(".env")
+	key:=os.Getenv("REFRESH_TOKEN_KEY")
+	token, err := claim.SignedString([]byte(key))
+	if err!=nil{
+		return "", err
+	}
+	user.Refresh_token = token
+	return token, nil
 }
