@@ -31,7 +31,6 @@ func GetCollection(collectionName string) *mongo.Collection {
 	if err != nil {
 		panic(err)
 	}
-	defer client.Disconnect(context.Background())
 	erro := godotenv.Load(".env")
 	if erro != nil {
 		panic(erro)

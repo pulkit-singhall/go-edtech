@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"os"
 
 	"github.com/gin-gonic/gin"
@@ -16,11 +15,10 @@ func main() {
 	PORT := os.Getenv("PORT")
 
 	// database connect
-	client, err := db.ConnectDB()
+	_, err := db.ConnectDB()
 	if err != nil {
 		panic(err)
 	}
-	defer client.Disconnect(context.Background())
 
 	if PORT == "" {
 		PORT = "8000"

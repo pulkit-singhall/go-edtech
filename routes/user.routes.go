@@ -13,5 +13,6 @@ func UserRoutes(incomingRoute *gin.Engine){
 		user.GET("/getUser/:userID", controllers.GetUser())
 		user.POST("/logout", controllers.Logout())
 		user.PATCH("/changePassword", controllers.ChangePassword())
+		user.GET("/getAllUsers", controllers.GetAllUsers())
 	}
 }
