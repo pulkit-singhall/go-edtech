@@ -84,23 +84,13 @@ func Login() gin.HandlerFunc {
 			c.AbortWithStatusJSON(402, gin.H{"error": utils.PasswordWrong.Error(), "detail": passErr.Error()})
 			return
 		}
-		token, tokenErr := existing.GenerateToken()
+		token, refresh, tokenErr := utils.GenerateNewTokens(user.Email)
 		if tokenErr != nil {
 			c.AbortWithStatusJSON(415, gin.H{"error": utils.TokenError.Error(), "detail": tokenErr.Error()})
 			return
 		}
-		refresh, refErr := existing.GenerateRefreshToken()
-		if refErr != nil {
-			c.AbortWithStatusJSON(415, gin.H{"error": utils.TokenError.Error(), "detail": refErr.Error()})
-			return
-		}
-		_, updErr := usercollection.UpdateOne(context.Background(), bson.M{"email": user.Email}, bson.M{"$set": bson.M{"token": token, "refresh_token": refresh}})
-		if updErr != nil {
-			c.AbortWithStatusJSON(500, gin.H{"error": utils.InternalServerError.Error(), "detail": updErr.Error()})
-			return
-		}
 		c.SetCookie("token", token, int(time.Hour*48), "/", "localhost", true, true)
-		c.SetCookie("refresh_token", refresh, int(time.Hour*48), "/", "localhost", true, true)
+		c.SetCookie("refresh_token", refresh, int(time.Hour*240), "/", "localhost", true, true)
 		c.JSON(200, gin.H{
 			"user":          existing,
 			"token":         token,
