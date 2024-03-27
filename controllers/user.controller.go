@@ -157,12 +157,63 @@ func GetAllUsers() gin.HandlerFunc {
 
 func Logout() gin.HandlerFunc {
 	return func(c *gin.Context) {
-
+		_, cancel := context.WithTimeout(context.Background(), 100*time.Second)
+		defer cancel()
+		email := c.Keys["email"]
+		userCollection := db.GetCollection("users")
+		_, err := userCollection.UpdateOne(context.Background(), bson.M{"email": email}, bson.M{"$set": bson.M{"token": "", "refresh_token": ""}})
+		if err != nil {
+			c.AbortWithStatusJSON(500, gin.H{"error": utils.InternalServerError.Error(), "detail": err.Error()})
+			return
+		}
+		c.SetCookie("token", "", -1, "/", "localhost", true, true)
+		c.SetCookie("refresh_token", "", -1, "/", "localhost", true, true)
+		c.JSON(200, gin.H{"message": "logout success", "success": "true"})
 	}
 }
 
 func ChangePassword() gin.HandlerFunc {
 	return func(c *gin.Context) {
-
+		_, cancel := context.WithTimeout(context.Background(), 100*time.Second)
+		defer cancel()
+		email := c.Keys["email"]
+		type Password struct {
+			Old string `json:"oldPassword" bson:"oldPassword"`
+			New string `json:"newPassword" bson:"newPassword"`
+		}
+		var pass *Password
+		err := c.BindJSON(&pass)
+		if err != nil {
+			c.AbortWithStatusJSON(500, gin.H{"error": utils.InternalServerError.Error(), "detail": err.Error()})
+			return
+		}
+		if pass.Old == "" || pass.New == "" {
+			c.AbortWithStatusJSON(400, gin.H{"error": utils.QueryBodyMissing.Error(), "detail": "passwords are missing"})
+			return
+		}
+		var user *models.User
+		userCollection := db.GetCollection("users")
+		findErr := userCollection.FindOne(context.Background(), bson.M{"email": email}).Decode(&user)
+		if findErr != nil {
+			c.AbortWithStatusJSON(402, gin.H{"error": utils.UserNotFound.Error(), "detail": findErr.Error()})
+			return
+		}
+		checkErr := user.CheckPassword(pass.Old)
+		if checkErr != nil {
+			c.AbortWithStatusJSON(405, gin.H{"error": utils.PasswordWrong.Error(), "detail": checkErr.Error()})
+			return
+		}
+		user.Password = pass.New
+		hashErr := user.HashPassword()
+		if hashErr != nil {
+			c.AbortWithStatusJSON(500, gin.H{"error": hashErr.Error()})
+			return
+		}
+		_, updErr := userCollection.UpdateOne(context.Background(), bson.M{"email": email}, bson.M{"$set": bson.M{"password": user.Password}})
+		if updErr != nil {
+			c.AbortWithStatusJSON(500, gin.H{"error": utils.InternalServerError.Error(), "detail": updErr.Error()})
+			return
+		}
+		c.JSON(201, gin.H{"message": "password updated successfully", "success": "true"})
 	}
 }

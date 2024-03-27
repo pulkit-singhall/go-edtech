@@ -21,8 +21,12 @@ func AuthCheck() gin.HandlerFunc {
 		}
 		tok, verErr := utils.VerifyToken(token)
 		refTok, verRefErr := utils.VerifyRefreshToken(refresh)
-		if verErr != nil || verRefErr != nil {
-			c.AbortWithStatusJSON(410, gin.H{"error": utils.TokenError.Error(), "detail": verErr.Error(), "extend": verRefErr.Error()})
+		if verErr != nil {
+			c.AbortWithStatusJSON(410, gin.H{"error": utils.TokenError.Error(), "detail": verErr.Error()})
+			return
+		}
+		if verRefErr != nil {
+			c.AbortWithStatusJSON(410, gin.H{"error": utils.TokenError.Error(), "detail": verRefErr.Error()})
 			return
 		}
 		if !tok.Valid { // access token expired
@@ -33,6 +37,11 @@ func AuthCheck() gin.HandlerFunc {
 				// refresh the tokens again
 				claims := refTok.Claims.(jwt.MapClaims)
 				email := claims["email"].(string)
+				sameErr := utils.SameRefreshToken(email, refTok.Raw)
+				if sameErr != nil {
+					c.AbortWithStatusJSON(500, gin.H{"error": utils.TokenError.Error(), "detail": sameErr.Error()})
+					return
+				}
 				// generate new tokens
 				token, refresh, err := utils.GenerateNewTokens(email)
 				if err != nil {
