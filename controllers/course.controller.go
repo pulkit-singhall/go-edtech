@@ -53,18 +53,84 @@ func CreateCourse() gin.HandlerFunc {
 
 func DeleteCourse() gin.HandlerFunc {
 	return func(c *gin.Context) {
-
+		_, cancel := context.WithTimeout(context.Background(), 100*time.Second)
+		defer cancel()
+		courseId := c.Param("courseID")
+		if courseId == "" {
+			c.AbortWithStatusJSON(400, gin.H{"error": utils.QueryParamMissing.Error(), "detail": "courseID is required"})
+			return
+		}
+		email := c.Keys["email"]
+		userCollection := db.GetCollection("users")
+		courseCollection := db.GetCollection("courses")
+		var user *models.User
+		decErr := userCollection.FindOne(context.Background(), bson.M{"email": email}).Decode(&user)
+		if decErr != nil {
+			c.AbortWithStatusJSON(500, gin.H{"error": utils.UserNotFound.Error(), "detail": decErr.Error()})
+			return
+		}
+		cId, hexErr := primitive.ObjectIDFromHex(courseId)
+		if hexErr != nil {
+			c.AbortWithStatusJSON(500, gin.H{"error": utils.HexIdError.Error(), "detail": hexErr.Error()})
+			return
+		}
+		var course *models.Course
+		cDecErr := courseCollection.FindOne(context.Background(), bson.M{"_id": cId}).Decode(&course)
+		if cDecErr != nil {
+			c.AbortWithStatusJSON(500, gin.H{"error": utils.InternalServerError.Error(), "detail": cDecErr.Error()})
+			return
+		}
+		if course.Owner != user.ID {
+			c.AbortWithStatusJSON(412, gin.H{"error": utils.AuthorizeError.Error(), "detail": "Not a course of current user"})
+			return
+		}
+		res, delErr := courseCollection.DeleteOne(context.Background(), bson.M{"_id": cId})
+		if delErr != nil {
+			c.AbortWithStatusJSON(500, gin.H{"error": utils.InternalServerError.Error(), "detail": delErr.Error()})
+			return
+		}
+		c.JSON(200, gin.H{"message": "course deleted successfully", "count": res.DeletedCount})
 	}
 }
 
 func GetCoursesByOwnerID() gin.HandlerFunc {
 	return func(c *gin.Context) {
-
+		_, cancel := context.WithTimeout(context.Background(), 100*time.Second)
+		defer cancel()
+		ownerId := c.Param("ownerID")
+		if ownerId == "" {
+			c.AbortWithStatusJSON(400, gin.H{"error": utils.QueryParamMissing.Error(), "detail": "owner ID is required"})
+			return
+		}
+		_, hexErr := primitive.ObjectIDFromHex(ownerId)
+		if hexErr != nil {
+			c.AbortWithStatusJSON(500, gin.H{"error": utils.HexIdError.Error(), "detail": hexErr.Error()})
+			return
+		}
 	}
 }
 
 func GetCourseByID() gin.HandlerFunc {
 	return func(c *gin.Context) {
-
+		_, cancel := context.WithTimeout(context.Background(), 100*time.Second)
+		defer cancel()
+		courseId := c.Param("courseID")
+		if courseId == "" {
+			c.AbortWithStatusJSON(400, gin.H{"error": utils.QueryParamMissing.Error(), "detail": "courseID is required"})
+			return
+		}
+		cId, hexErr := primitive.ObjectIDFromHex(courseId)
+		if hexErr != nil {
+			c.AbortWithStatusJSON(500, gin.H{"error": utils.HexIdError.Error(), "detail": hexErr.Error()})
+			return
+		}
+		courseCollection := db.GetCollection("courses")
+		var course *models.Course
+		cDecErr := courseCollection.FindOne(context.Background(), bson.M{"_id": cId}).Decode(&course)
+		if cDecErr != nil {
+			c.AbortWithStatusJSON(500, gin.H{"error": utils.InternalServerError.Error(), "detail": cDecErr.Error()})
+			return
+		}
+		c.JSON(200, gin.H{"course": course})
 	}
 }
