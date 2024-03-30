@@ -30,6 +30,7 @@ func main() {
 	routes.UserRoutes(router)
 	routes.CourseRoutes(router)
 	routes.RatingRoutes(router)
+	routes.CategoryRoutes(router)
 
 	erro := router.Run(":" + PORT)
 	if erro != nil {
