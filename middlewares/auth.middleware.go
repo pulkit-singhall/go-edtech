@@ -19,16 +19,16 @@ func AuthCheck() gin.HandlerFunc {
 			c.AbortWithStatusJSON(400, gin.H{"error": utils.TokenError.Error(), "detail": err.Error()})
 			return
 		}
-		tok, verErr := utils.VerifyToken(token)
-		refTok, verRefErr := utils.VerifyRefreshToken(refresh)
-		if verErr != nil {
-			c.AbortWithStatusJSON(410, gin.H{"error": utils.TokenError.Error(), "detail": verErr.Error()})
-			return
-		}
-		if verRefErr != nil {
-			c.AbortWithStatusJSON(410, gin.H{"error": utils.TokenError.Error(), "detail": verRefErr.Error()})
-			return
-		}
+		tok, _ := utils.VerifyToken(token)
+		refTok, _ := utils.VerifyRefreshToken(refresh)
+		// if verErr != nil {
+		// 	c.AbortWithStatusJSON(410, gin.H{"error": utils.TokenError.Error(), "detail": verErr.Error()})
+		// 	return
+		// }
+		// if verRefErr != nil {
+		// 	c.AbortWithStatusJSON(410, gin.H{"error": utils.TokenError.Error(), "detail": verRefErr.Error()})
+		// 	return
+		// }
 		if !tok.Valid { // access token expired
 			if !refTok.Valid { // refresh token expired
 				c.AbortWithStatusJSON(415, gin.H{"message": "tokens expired. pls login again!"})

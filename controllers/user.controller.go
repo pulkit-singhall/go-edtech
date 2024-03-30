@@ -15,6 +15,8 @@ import (
 
 var Validator = validator.New()
 
+var userCollection = db.GetCollection("users")
+
 func Signup() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		_, cancel := context.WithTimeout(context.Background(), 100*time.Second)
@@ -30,7 +32,6 @@ func Signup() gin.HandlerFunc {
 			c.AbortWithStatusJSON(400, gin.H{"error": utils.ValidationFailed.Error(), "detail": validateErr.Error()})
 			return
 		}
-		userCollection := db.GetCollection("users")
 		count, existErr := userCollection.CountDocuments(context.Background(), bson.M{"email": user.Email})
 		if existErr != nil {
 			c.AbortWithStatusJSON(402, gin.H{"error": utils.InternalServerError.Error(), "detail": existErr.Error()})
@@ -72,9 +73,8 @@ func Login() gin.HandlerFunc {
 				"details": "email or password is missing"})
 			return
 		}
-		usercollection := db.GetCollection("users")
 		var existing *models.User
-		existErr := usercollection.FindOne(context.Background(), bson.M{"email": user.Email}).Decode(&existing)
+		existErr := userCollection.FindOne(context.Background(), bson.M{"email": user.Email}).Decode(&existing)
 		if existErr != nil {
 			c.AbortWithStatusJSON(500, gin.H{"error": utils.UserNotFound.Error(), "detail": existErr.Error()})
 			return
@@ -108,7 +108,6 @@ func GetUser() gin.HandlerFunc {
 			c.AbortWithStatusJSON(400, gin.H{"error": utils.QueryParamMissing, "detail": "User ID is required"})
 			return
 		}
-		userCollection := db.GetCollection("users")
 		id, hexErr := primitive.ObjectIDFromHex(userId)
 		if hexErr != nil {
 			c.AbortWithStatusJSON(500, gin.H{"error": utils.HexIdError.Error(), "detail": hexErr.Error()})
@@ -130,7 +129,6 @@ func GetAllUsers() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		_, cancel := context.WithTimeout(context.Background(), 100*time.Second)
 		defer cancel()
-		userCollection := db.GetCollection("users")
 		cur, err := userCollection.Find(context.Background(), bson.M{})
 		if err != nil {
 			c.AbortWithStatusJSON(500, gin.H{
@@ -160,7 +158,6 @@ func Logout() gin.HandlerFunc {
 		_, cancel := context.WithTimeout(context.Background(), 100*time.Second)
 		defer cancel()
 		email := c.Keys["email"]
-		userCollection := db.GetCollection("users")
 		_, err := userCollection.UpdateOne(context.Background(), bson.M{"email": email}, bson.M{"$set": bson.M{"token": "", "refresh_token": ""}})
 		if err != nil {
 			c.AbortWithStatusJSON(500, gin.H{"error": utils.InternalServerError.Error(), "detail": err.Error()})
@@ -192,7 +189,6 @@ func ChangePassword() gin.HandlerFunc {
 			return
 		}
 		var user *models.User
-		userCollection := db.GetCollection("users")
 		findErr := userCollection.FindOne(context.Background(), bson.M{"email": email}).Decode(&user)
 		if findErr != nil {
 			c.AbortWithStatusJSON(402, gin.H{"error": utils.UserNotFound.Error(), "detail": findErr.Error()})

@@ -12,6 +12,8 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
+var courseCollection = db.GetCollection("courses")
+
 func CreateCourse() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		_, cancel := context.WithTimeout(context.Background(), time.Second*100)
@@ -28,7 +30,6 @@ func CreateCourse() gin.HandlerFunc {
 			c.AbortWithStatusJSON(400, gin.H{"error": utils.ValidationFailed.Error(), "detail": valErr.Error()})
 			return
 		}
-		userCollection := db.GetCollection("users")
 		var user *models.User
 		decErr := userCollection.FindOne(context.Background(), bson.M{"email": email}).Decode(&user)
 		if decErr != nil {
@@ -41,7 +42,6 @@ func CreateCourse() gin.HandlerFunc {
 		course.Ratings = 0
 		course.CreatedAt = time.Now().Local()
 		course.UpdatedAt = time.Now().Local()
-		courseCollection := db.GetCollection("courses")
 		id, createErr := courseCollection.InsertOne(context.Background(), course)
 		if createErr != nil {
 			c.AbortWithStatusJSON(500, gin.H{"error": utils.InternalServerError.Error(), "detail": createErr.Error()})
@@ -61,8 +61,6 @@ func DeleteCourse() gin.HandlerFunc {
 			return
 		}
 		email := c.Keys["email"]
-		userCollection := db.GetCollection("users")
-		courseCollection := db.GetCollection("courses")
 		var user *models.User
 		decErr := userCollection.FindOne(context.Background(), bson.M{"email": email}).Decode(&user)
 		if decErr != nil {
@@ -124,7 +122,6 @@ func GetCourseByID() gin.HandlerFunc {
 			c.AbortWithStatusJSON(500, gin.H{"error": utils.HexIdError.Error(), "detail": hexErr.Error()})
 			return
 		}
-		courseCollection := db.GetCollection("courses")
 		var course *models.Course
 		cDecErr := courseCollection.FindOne(context.Background(), bson.M{"_id": cId}).Decode(&course)
 		if cDecErr != nil {
