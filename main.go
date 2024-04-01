@@ -11,7 +11,10 @@ import (
 
 func main() {
 	// env file variables
-	godotenv.Load(".env")
+	envErr:=godotenv.Load(".env")
+	if envErr!=nil{
+		panic(envErr)
+	}
 	PORT := os.Getenv("PORT")
 
 	// database connect
@@ -32,6 +35,7 @@ func main() {
 	routes.RatingRoutes(router)
 	routes.CategoryRoutes(router)
 	routes.CommentRoutes(router)
+	routes.VideoRoutes(router)
 
 	erro := router.Run(":" + PORT)
 	if erro != nil {

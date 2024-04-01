@@ -170,3 +170,9 @@ func GetUserRatings() gin.HandlerFunc {
 
 	}
 }
+
+func GetRating() gin.HandlerFunc{
+	return func(c *gin.Context) {
+		
+	}
+}

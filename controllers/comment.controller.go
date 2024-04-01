@@ -157,12 +157,18 @@ func GetCourseComments() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		_, cancel := context.WithTimeout(context.Background(), 100*time.Second)
 		defer cancel()
-		
+
 	}
 }
 
 func GetUserComments() gin.HandlerFunc {
 	return func(c *gin.Context) {
 
+	}
+}
+
+func GetComment() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		
 	}
 }
