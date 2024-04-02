@@ -9,7 +9,7 @@ import (
 	"github.com/joho/godotenv"
 )
 
-func SetupCloudinary() (*cloudinary.Cloudinary, string, error) {
+func setupCloudinary() (*cloudinary.Cloudinary, string, error) {
 	envErr := godotenv.Load(".env")
 	if envErr != nil {
 		return nil, "", envErr
@@ -27,7 +27,7 @@ func SetupCloudinary() (*cloudinary.Cloudinary, string, error) {
 }
 
 func UploadFile(file interface{}) (string, string, error) {
-	cld, folder, cldErr := SetupCloudinary()
+	cld, folder, cldErr := setupCloudinary()
 	if cldErr != nil {
 		return "", "", cldErr
 	}
@@ -38,11 +38,20 @@ func UploadFile(file interface{}) (string, string, error) {
 	return res.URL, res.PublicID, nil
 }
 
-func DeleteFile(publicID string) error {
-	cld, _, cldErr := SetupCloudinary()
+func DeleteImageFile(publicID string) error {
+	cld, _, cldErr := setupCloudinary()
 	if cldErr != nil {
 		return cldErr
 	}
-	_, desErr := cld.Upload.Destroy(context.Background(), uploader.DestroyParams{PublicID: publicID})
+	_, desErr := cld.Upload.Destroy(context.Background(), uploader.DestroyParams{PublicID: publicID, ResourceType: "image"})
+	return desErr
+}
+
+func DeleteVideoFile(publicID string) error {
+	cld, _, cldErr := setupCloudinary()
+	if cldErr != nil {
+		return cldErr
+	}
+	_, desErr := cld.Upload.Destroy(context.Background(), uploader.DestroyParams{PublicID: publicID, ResourceType: "video"})
 	return desErr
 }

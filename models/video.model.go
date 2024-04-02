@@ -7,11 +7,13 @@ import (
 )
 
 type Video struct {
-	ID          primitive.ObjectID `json:"_id" bson:"_id"`
-	CourseID    primitive.ObjectID `json:"courseID" bson:"courseID"`
-	OwnerID     primitive.ObjectID `json:"ownerID" bson:"ownerID"`
-	Title       string             `json:"title" validate:"required,min=2,max=200"`
-	VideoFileID string             `json:"videoFileID"`
-	ThumbnailID string             `json:"thumbnailID"`
-	CreatedAt   time.Time          `json:"createdAt" bson:"createdAt"`
+	ID           primitive.ObjectID `json:"_id" bson:"_id"`
+	CourseID     primitive.ObjectID `json:"courseID" bson:"courseID"`
+	OwnerID      primitive.ObjectID `json:"ownerID" bson:"ownerID"`
+	Title        string             `json:"title" validate:"required,min=2,max=200"`
+	VideoFileUrl string             `json:"videoFileUrl"`
+	ThumbnailUrl string             `json:"thumbnailUrl"`
+	VideoFileID  string             `json:"videoFileID"`
+	ThumbnailID  string             `json:"thumbnailID"`
+	CreatedAt    time.Time          `json:"createdAt" bson:"createdAt"`
 }
