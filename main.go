@@ -11,8 +11,8 @@ import (
 
 func main() {
 	// env file variables
-	envErr:=godotenv.Load(".env")
-	if envErr!=nil{
+	envErr := godotenv.Load(".env")
+	if envErr != nil {
 		panic(envErr)
 	}
 	PORT := os.Getenv("PORT")
@@ -36,6 +36,7 @@ func main() {
 	routes.CategoryRoutes(router)
 	routes.CommentRoutes(router)
 	routes.VideoRoutes(router)
+	routes.PurchaseRoutes(router)
 
 	erro := router.Run(":" + PORT)
 	if erro != nil {

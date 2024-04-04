@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"github.com/pulkit-singhall/go-edtech/db"
+	"github.com/pulkit-singhall/go-edtech/middlewares"
 	"github.com/pulkit-singhall/go-edtech/models"
 	"github.com/pulkit-singhall/go-edtech/utils"
 	"go.mongodb.org/mongo-driver/bson"
@@ -211,5 +212,44 @@ func ChangePassword() gin.HandlerFunc {
 			return
 		}
 		c.JSON(201, gin.H{"message": "password updated successfully", "success": "true"})
+	}
+}
+
+func UploadUserAvatar() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		_, cancel := context.WithTimeout(context.Background(), 100*time.Second)
+		defer cancel()
+		email := c.Keys["email"]
+		avatar, _, avatarErr := c.Request.FormFile("avatar")
+		if avatarErr != nil {
+			c.AbortWithStatusJSON(400, gin.H{"error": utils.FileError.Error(), "detail": avatarErr.Error()})
+			return
+		}
+		_, _, uplErr := middlewares.UploadFile(avatar)
+		if uplErr != nil {
+			c.AbortWithStatusJSON(500, gin.H{"error": utils.UploadFileError.Error(), "detail": uplErr.Error()})
+			return
+		}
+
+	}
+}
+
+func ChangeUserAvatar() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		_, cancel := context.WithTimeout(context.Background(), 100*time.Second)
+		defer cancel()
+		email:=c.Keys["email"]
+		avatar,_,avtErr:=c.Request.FormFile("avatar")
+		if avtErr!=nil{
+			c.AbortWithStatusJSON(400, gin.H{"error": utils.FileError.Error(), "detail": avtErr.Error()})
+			return 
+		}
+		var user *models.User
+		decErr:=userCollection.FindOne(context.Background(), bson.M{"email": email}).Decode(&user)
+		if decErr!=nil{
+			c.AbortWithStatusJSON(412, gin.H{"error": utils.UserNotFound.Error(), "detail": decErr.Error()})
+			return
+		}
+		
 	}
 }
