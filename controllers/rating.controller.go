@@ -161,44 +161,97 @@ func UpdateRating() gin.HandlerFunc {
 
 func GetCourseRatings() gin.HandlerFunc {
 	return func(c *gin.Context) {
-
+		_, cancel := context.WithTimeout(context.Background(), 100*time.Second)
+		defer cancel()
+		courseId := c.Param("courseID")
+		cId, hexErr := primitive.ObjectIDFromHex(courseId)
+		if hexErr != nil {
+			c.AbortWithStatusJSON(500, gin.H{"error": utils.HexIdError.Error(), "detail": hexErr.Error()})
+			return
+		}
+		pipeline := []bson.M{}
+		matchPipeline := bson.M{
+			"$match": bson.M{
+				"courseID": cId,
+			},
+		}
+		pipeline = append(pipeline, matchPipeline)
+		cur, pipeErr := ratingCollection.Aggregate(context.Background(), pipeline)
+		if pipeErr != nil {
+			c.AbortWithStatusJSON(500, gin.H{"error": utils.PipelineError.Error(), "detail": pipeErr.Error()})
+			return
+		}
+		courseRatings := []bson.M{}
+		curErr := cur.All(context.Background(), &courseRatings)
+		if curErr != nil {
+			c.AbortWithStatusJSON(500, gin.H{"error": utils.InternalServerError.Error(), "detail": curErr.Error()})
+			return
+		}
+		c.JSON(200, gin.H{"course ratings": courseRatings})
 	}
 }
 
 func GetUserRatings() gin.HandlerFunc {
 	return func(c *gin.Context) {
-
+		_, cancel := context.WithTimeout(context.Background(), 100*time.Second)
+		defer cancel()
+		email := c.Keys["email"]
+		var user *models.User
+		decErr := userCollection.FindOne(context.Background(), bson.M{"email": email}).Decode(&user)
+		if decErr != nil {
+			c.AbortWithStatusJSON(412, gin.H{"error": utils.UserNotFound.Error(), "detail": decErr.Error()})
+			return
+		}
+		pipeline := []bson.M{} // array of pipelines
+		matchPipeline := bson.M{ // component of pipeline
+			"$match": bson.M{
+				"ownerID": user.ID,
+			},
+		}
+		pipeline = append(pipeline, matchPipeline)
+		cur, pipeErr := ratingCollection.Aggregate(context.Background(), pipeline)
+		if pipeErr != nil {
+			c.AbortWithStatusJSON(500, gin.H{"error": utils.PipelineError.Error(), "detail": pipeErr.Error()})
+			return
+		}
+		userRatings := []bson.M{}
+		curErr := cur.All(context.Background(), &userRatings)
+		if curErr != nil {
+			c.AbortWithStatusJSON(500, gin.H{"error": utils.InternalServerError.Error(), "detail": curErr.Error()})
+			return
+		}
+		c.JSON(200, gin.H{"user ratings": userRatings})
 	}
 }
 
-func GetRating() gin.HandlerFunc{
+func GetRating() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		_,cancel:=context.WithTimeout(context.Background(),100*time.Second)
+		_, cancel := context.WithTimeout(context.Background(), 100*time.Second)
 		defer cancel()
-		email:=c.Keys["email"]
-		ratingId:=c.Param("ratingID")
-		if ratingId == ""{
+		email := c.Keys["email"]
+		ratingId := c.Param("ratingID")
+		if ratingId == "" {
 			c.AbortWithStatusJSON(400, gin.H{"error": utils.QueryParamMissing.Error(), "detail": "rating ID is required"})
 			return
 		}
 		var user *models.User
-		decErr:=userCollection.FindOne(context.Background(), bson.M{"email": email}).Decode(&user)
-		if decErr!=nil{
+		decErr := userCollection.FindOne(context.Background(), bson.M{"email": email}).Decode(&user)
+		if decErr != nil {
 			c.AbortWithStatusJSON(412, gin.H{"error": utils.UserNotFound.Error(), "detail": decErr.Error()})
 			return
-		}	
-		rId,hexErr:=primitive.ObjectIDFromHex(ratingId)
-		if hexErr!=nil{
+		}
+		rId, hexErr := primitive.ObjectIDFromHex(ratingId)
+		if hexErr != nil {
 			c.AbortWithStatusJSON(500, gin.H{"error": utils.HexIdError.Error(), "detail": hexErr.Error()})
 			return
 		}
 		var rating *models.Rating
-		decRErr:=ratingCollection.FindOne(context.Background(), bson.M{"_id": rId}).Decode(&rating)
-		if decRErr!=nil{
+		decRErr := ratingCollection.FindOne(context.Background(), bson.M{"_id": rId}).Decode(&rating)
+		if decRErr != nil {
 			c.AbortWithStatusJSON(412, gin.H{"error": utils.InternalServerError.Error(), "detail": decRErr.Error()})
 			return
 		}
-		if rating.OwnerID!=user.ID{
+		if rating.OwnerID != user.ID {
 			c.AbortWithStatusJSON(500, gin.H{"error": utils.AuthorizeError.Error(), "detail": "user not authorize to see this rating"})
 			return
 		}

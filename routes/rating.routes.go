@@ -12,7 +12,7 @@ func RatingRoutes(incomingRoute *gin.Engine) {
 		rating.POST("/create/:courseID", middlewares.AuthCheck(), controllers.CreateRating())
 		rating.DELETE("/delete/:ratingID", middlewares.AuthCheck(), controllers.DeleteRating())
 		rating.GET("/getCourseRatings/:courseID", controllers.GetCourseRatings())
-		rating.GET("/getUserRatings/:ownerID", middlewares.AuthCheck(), controllers.GetUserRatings())
+		rating.GET("/getUserRatings", middlewares.AuthCheck(), controllers.GetUserRatings())
 		rating.PATCH("/update/:ratingID", middlewares.AuthCheck(), controllers.UpdateRating())
 		rating.GET("/rating/:ratingID", middlewares.AuthCheck(), controllers.GetRating())
 	}

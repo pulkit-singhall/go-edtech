@@ -84,47 +84,47 @@ func DeleteVideo() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		_, cancel := context.WithTimeout(context.Background(), 100*time.Second)
 		defer cancel()
-		videoId:=c.Param("videoID")
-		email:=c.Keys["email"]
-		if videoId==""{
+		videoId := c.Param("videoID")
+		email := c.Keys["email"]
+		if videoId == "" {
 			c.AbortWithStatusJSON(400, gin.H{"error": utils.QueryParamMissing.Error(), "detail": "video ID is required"})
 			return
 		}
-		vId,hexErr:=primitive.ObjectIDFromHex(videoId)
-		if hexErr!=nil{
+		vId, hexErr := primitive.ObjectIDFromHex(videoId)
+		if hexErr != nil {
 			c.AbortWithStatusJSON(500, gin.H{"error": utils.HexIdError.Error(), "detail": hexErr.Error()})
 			return
 		}
 		var user *models.User
-		decErr:=userCollection.FindOne(context.Background(), bson.M{"email": email}).Decode(&user)
+		decErr := userCollection.FindOne(context.Background(), bson.M{"email": email}).Decode(&user)
 		if decErr != nil {
 			c.AbortWithStatusJSON(500, gin.H{"error": utils.UserNotFound.Error(), "detail": decErr.Error()})
 			return
 		}
 		var video *models.Video
-		decVErr:=videoCollection.FindOne(context.Background(), bson.M{"_id": vId}).Decode(&video)
-		if decVErr!=nil{
+		decVErr := videoCollection.FindOne(context.Background(), bson.M{"_id": vId}).Decode(&video)
+		if decVErr != nil {
 			c.AbortWithStatusJSON(500, gin.H{"error": utils.InternalServerError.Error(), "detail": decVErr.Error()})
 			return
 		}
-		if user.ID != video.OwnerID{
+		if user.ID != video.OwnerID {
 			c.AbortWithStatusJSON(412, gin.H{"error": utils.AuthorizeError.Error(), "detail": "user not authorize to delete this video"})
 			return
 		}
 		tPId := video.ThumbnailID
 		vPId := video.VideoFileID
-		dTErr:=middlewares.DeleteImageFile(tPId)
-		dVErr:=middlewares.DeleteVideoFile(vPId)
-		if dTErr!=nil{
+		dTErr := middlewares.DeleteImageFile(tPId)
+		dVErr := middlewares.DeleteVideoFile(vPId)
+		if dTErr != nil {
 			c.AbortWithStatusJSON(500, gin.H{"error": utils.DeleteFileError.Error(), "detail": dTErr.Error()})
 			return
 		}
-		if dVErr!=nil{
+		if dVErr != nil {
 			c.AbortWithStatusJSON(500, gin.H{"error": utils.DeleteFileError.Error(), "detail": dVErr.Error()})
 			return
 		}
-		_,delErr:=videoCollection.DeleteOne(context.Background(), bson.M{"_id": vId})
-		if delErr!=nil{
+		_, delErr := videoCollection.DeleteOne(context.Background(), bson.M{"_id": vId})
+		if delErr != nil {
 			c.AbortWithStatusJSON(500, gin.H{"error": utils.InternalServerError.Error(), "detail": delErr.Error()})
 			return
 		}

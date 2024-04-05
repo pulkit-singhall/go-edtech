@@ -37,6 +37,7 @@ func main() {
 	routes.CommentRoutes(router)
 	routes.VideoRoutes(router)
 	routes.PurchaseRoutes(router)
+	routes.CartRoutes(router)
 
 	erro := router.Run(":" + PORT)
 	if erro != nil {
