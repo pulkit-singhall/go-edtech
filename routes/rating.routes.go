@@ -14,6 +14,6 @@ func RatingRoutes(incomingRoute *gin.Engine) {
 		rating.GET("/getCourseRatings/:courseID", controllers.GetCourseRatings())
 		rating.GET("/getUserRatings/:ownerID", middlewares.AuthCheck(), controllers.GetUserRatings())
 		rating.PATCH("/update/:ratingID", middlewares.AuthCheck(), controllers.UpdateRating())
-		rating.GET("/rating/:ratingID", controllers.GetRating())
+		rating.GET("/rating/:ratingID", middlewares.AuthCheck(), controllers.GetRating())
 	}
 }

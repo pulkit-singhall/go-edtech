@@ -173,6 +173,35 @@ func GetUserRatings() gin.HandlerFunc {
 
 func GetRating() gin.HandlerFunc{
 	return func(c *gin.Context) {
-		
+		_,cancel:=context.WithTimeout(context.Background(),100*time.Second)
+		defer cancel()
+		email:=c.Keys["email"]
+		ratingId:=c.Param("ratingID")
+		if ratingId == ""{
+			c.AbortWithStatusJSON(400, gin.H{"error": utils.QueryParamMissing.Error(), "detail": "rating ID is required"})
+			return
+		}
+		var user *models.User
+		decErr:=userCollection.FindOne(context.Background(), bson.M{"email": email}).Decode(&user)
+		if decErr!=nil{
+			c.AbortWithStatusJSON(412, gin.H{"error": utils.UserNotFound.Error(), "detail": decErr.Error()})
+			return
+		}	
+		rId,hexErr:=primitive.ObjectIDFromHex(ratingId)
+		if hexErr!=nil{
+			c.AbortWithStatusJSON(500, gin.H{"error": utils.HexIdError.Error(), "detail": hexErr.Error()})
+			return
+		}
+		var rating *models.Rating
+		decRErr:=ratingCollection.FindOne(context.Background(), bson.M{"_id": rId}).Decode(&rating)
+		if decRErr!=nil{
+			c.AbortWithStatusJSON(412, gin.H{"error": utils.InternalServerError.Error(), "detail": decRErr.Error()})
+			return
+		}
+		if rating.OwnerID!=user.ID{
+			c.AbortWithStatusJSON(500, gin.H{"error": utils.AuthorizeError.Error(), "detail": "user not authorize to see this rating"})
+			return
+		}
+		c.JSON(200, gin.H{"rating": rating})
 	}
 }

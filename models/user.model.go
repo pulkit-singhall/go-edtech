@@ -16,6 +16,8 @@ type User struct {
 	Last_name     string             `json:"last_name" validate:"required,min=2,max=20"`
 	Email         string             `json:"email" validate:"email,required"`
 	Password      string             `json:"password" validate:"required,min=8,max=16"`
+	Avatar        string             `json:"avatar"`
+	AvatarId      string             `json:"avatarId"`
 	Token         string             `json:"token"`
 	Refresh_token string             `json:"refresh_token"`
 	CreatedAt     time.Time          `json:"createdAt" bson:"createdAt"`
@@ -46,25 +48,24 @@ func (user *User) GenerateToken() (string, error) {
 		"exp":        time.Now().Local().Add(time.Hour * 24).Unix(),
 	})
 	godotenv.Load(".env")
-	key:=os.Getenv("TOKEN_KEY")
+	key := os.Getenv("TOKEN_KEY")
 	token, err := claim.SignedString([]byte(key))
-	if err!=nil{
+	if err != nil {
 		return "", err
 	}
 	user.Token = token
 	return token, nil
 }
 
-
 func (user *User) GenerateRefreshToken() (string, error) {
 	claim := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"email":      user.Email,
-		"exp":        time.Now().Local().Add(time.Hour * 120).Unix(),
+		"email": user.Email,
+		"exp":   time.Now().Local().Add(time.Hour * 120).Unix(),
 	})
 	godotenv.Load(".env")
-	key:=os.Getenv("REFRESH_TOKEN_KEY")
+	key := os.Getenv("REFRESH_TOKEN_KEY")
 	token, err := claim.SignedString([]byte(key))
-	if err!=nil{
+	if err != nil {
 		return "", err
 	}
 	user.Refresh_token = token

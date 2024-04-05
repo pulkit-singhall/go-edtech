@@ -225,12 +225,18 @@ func UploadUserAvatar() gin.HandlerFunc {
 			c.AbortWithStatusJSON(400, gin.H{"error": utils.FileError.Error(), "detail": avatarErr.Error()})
 			return
 		}
-		_, _, uplErr := middlewares.UploadFile(avatar)
+		url, pId, uplErr := middlewares.UploadFile(avatar)
 		if uplErr != nil {
 			c.AbortWithStatusJSON(500, gin.H{"error": utils.UploadFileError.Error(), "detail": uplErr.Error()})
 			return
 		}
-
+		_,updErr:=userCollection.UpdateOne(context.Background(), bson.M{"email": email}, bson.M{"$set": bson.M{"avatar": url, "avatarId": pId}})
+		if updErr!=nil{
+			middlewares.DeleteImageFile(pId)
+			c.AbortWithStatusJSON(500, gin.H{"error": utils.InternalServerError.Error(), "detail": updErr.Error()})
+			return
+		}
+		c.JSON(201, gin.H{"message": "avatar uploaded", "success": "true"})
 	}
 }
 
@@ -250,6 +256,19 @@ func ChangeUserAvatar() gin.HandlerFunc {
 			c.AbortWithStatusJSON(412, gin.H{"error": utils.UserNotFound.Error(), "detail": decErr.Error()})
 			return
 		}
-		
+		oldPId:=user.AvatarId
+		url,pId,uplErr:=middlewares.UploadFile(avatar)
+		if uplErr!=nil{
+			c.AbortWithStatusJSON(500, gin.H{"error": utils.UploadFileError.Error(), "detail": uplErr.Error()})
+			return
+		}
+		_,updErr:=userCollection.UpdateOne(context.Background(), bson.M{"email": email}, bson.M{"$set": bson.M{"avatar": url, "avatarId": pId}})
+		if updErr!=nil{
+			middlewares.DeleteImageFile(pId)
+			c.AbortWithStatusJSON(500, gin.H{"error": utils.InternalServerError.Error(), "detail": updErr.Error()})
+			return
+		}
+		middlewares.DeleteImageFile(oldPId)
+		c.JSON(200, gin.H{"message": "avatar updated successfully", "success": "true"})
 	}
 }
