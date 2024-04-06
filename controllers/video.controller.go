@@ -134,13 +134,83 @@ func DeleteVideo() gin.HandlerFunc {
 
 func GetCourseVideos() gin.HandlerFunc {
 	return func(c *gin.Context) {
-
-	}
+		_,cancel:=context.WithTimeout(context.Background(), 100*time.Second)
+		defer cancel()
+		courseId:=c.Param("courseID")
+		email:=c.Keys["email"]
+		cId,hexErr:=primitive.ObjectIDFromHex(courseId)
+		if hexErr!=nil{
+			c.AbortWithStatusJSON(500, gin.H{"error": utils.HexIdError.Error(), "detail": hexErr.Error()})
+			return
+		}
+		var user *models.User
+		decErr:=userCollection.FindOne(context.Background(), bson.M{"email": email}).Decode(&user)
+		if decErr!=nil{
+			c.AbortWithStatusJSON(412, gin.H{"error": utils.UserNotFound.Error(), "detail": decErr.Error()})
+			return
+		}
+		var course *models.Course
+		decCErr:=courseCollection.FindOne(context.Background(), bson.M{"_id": cId}).Decode(&course)
+		if decCErr!=nil{
+			c.AbortWithStatusJSON(500, gin.H{"error": utils.InternalServerError.Error(), "detail": decCErr.Error()})
+			return
+		}
+		if course.Owner != user.ID{
+			c.AbortWithStatusJSON(412, gin.H{"error": utils.AuthorizeError.Error(), "detail": "user not authorize to see this courses' videos"})
+			return
+		}
+		pipeline:= []bson.M{}
+		matchPipeline:= bson.M{
+			"$match": bson.M{
+				"courseID": cId,
+			},
+		}
+		pipeline = append(pipeline, matchPipeline)
+		cur,pipeErr:=videoCollection.Aggregate(context.Background(), pipeline)
+		if pipeErr!=nil{
+			c.AbortWithStatusJSON(500, gin.H{"error": utils.InternalServerError.Error(), "detail": pipeErr.Error()})
+			return
+		}
+		var courseVideos []bson.M
+		curErr:=cur.All(context.Background(), &courseVideos)
+		if curErr!=nil{
+			c.AbortWithStatusJSON(500, gin.H{"error": utils.InternalServerError.Error(), "detail": curErr.Error()})
+			return
+		}
+		c.JSON(200, gin.H{"course videos": courseVideos})
+	}	
 }
 
 func GetUserVideos() gin.HandlerFunc {
 	return func(c *gin.Context) {
-
+		_,cancel:=context.WithTimeout(context.Background(), 100*time.Second)
+		defer cancel()
+		email:=c.Keys["email"]
+		var user *models.User
+		decErr:=userCollection.FindOne(context.Background(), bson.M{"email": email}).Decode(&user)
+		if decErr!=nil{
+			c.AbortWithStatusJSON(412, gin.H{"error": utils.UserNotFound.Error(), "detail": decErr.Error()})
+			return
+		}
+		pipeline:=[]bson.M{}
+		matchPipeline:=bson.M{
+			"$match": bson.M{
+				"ownerID": user.ID,
+			},
+		}
+		pipeline = append(pipeline, matchPipeline)
+		cur,pipeErr:=videoCollection.Aggregate(context.Background(), pipeline)
+		if pipeErr!=nil{
+			c.AbortWithStatusJSON(500, gin.H{"error": utils.InternalServerError.Error(), "detail": pipeErr.Error()})
+			return
+		}
+		var userVideos []bson.M
+		curErr:=cur.All(context.Background(), &userVideos)
+		if curErr!=nil{
+			c.AbortWithStatusJSON(500, gin.H{"error": utils.InternalServerError.Error(), "detail": curErr.Error()})
+			return
+		}
+		c.JSON(200, gin.H{"user videos": userVideos})
 	}
 }
 

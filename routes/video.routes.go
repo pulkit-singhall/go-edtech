@@ -13,6 +13,6 @@ func VideoRoutes(incomingRoute *gin.Engine) {
 		video.DELETE("/delete/:videoID", middlewares.AuthCheck(), controllers.DeleteVideo())
 		video.GET("/courseVideos/:courseID", middlewares.AuthCheck(), controllers.GetCourseVideos())
 		video.GET("/video/:videoID", middlewares.AuthCheck(), controllers.GetVideo())
-		video.GET("/userVideos/:ownerID", middlewares.AuthCheck(), controllers.GetUserVideos())
+		video.GET("/userVideos", middlewares.AuthCheck(), controllers.GetUserVideos())
 	}
 }
