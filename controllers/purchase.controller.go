@@ -60,8 +60,8 @@ func PurchaseCourse() gin.HandlerFunc {
 			c.AbortWithStatusJSON(412, gin.H{"error": utils.AuthorizeError.Error(), "detail": "user already created this course"})
 			return
 		}
-		invoice,invErr:=middlewares.GenerateInvoice(course.Price, payment.PaymentType, user.ID, cId)
-		if invErr!=nil{
+		invoice, invErr := middlewares.GenerateInvoice(course.Price, payment.PaymentType, user.ID, cId)
+		if invErr != nil {
 			c.AbortWithStatusJSON(500, gin.H{"error": utils.InternalServerError.Error(), "detail": invErr.Error()})
 			return
 		}
@@ -96,6 +96,33 @@ func PurchaseCourse() gin.HandlerFunc {
 
 func GetUserPurchasedCourses() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		
+		_, cancel := context.WithTimeout(context.Background(), 100*time.Second)
+		defer cancel()
+		email := c.Keys["email"]
+		var user *models.User
+		decErr := userCollection.FindOne(context.Background(), bson.M{"email": email}).Decode(&user)
+		if decErr != nil {
+			c.AbortWithStatusJSON(412, gin.H{"error": utils.UserNotFound.Error(), "detail": decErr.Error()})
+			return
+		}
+		pipeline := []bson.M{}
+		matchPipeline := bson.M{
+			"$match": bson.M{
+				"ownerID": user.ID,
+			},
+		}
+		pipeline = append(pipeline, matchPipeline)
+		cur, pipeErr := purchaseCollection.Aggregate(context.Background(), pipeline)
+		if pipeErr != nil {
+			c.AbortWithStatusJSON(500, gin.H{"error": utils.PipelineError.Error(), "detail": pipeErr.Error()})
+			return
+		}
+		var result []bson.M
+		curErr := cur.All(context.Background(), &result)
+		if curErr != nil {
+			c.AbortWithStatusJSON(500, gin.H{"error": utils.InternalServerError.Error(), "detail": curErr.Error()})
+			return
+		}
+		c.JSON(200, gin.H{"purchased courses": result})
 	}
 }

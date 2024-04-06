@@ -13,7 +13,7 @@ func CommentRoutes(incomingRoute *gin.Engine) {
 		comment.PATCH("/update/:commentID", middlewares.AuthCheck(), controllers.UpdateComment())
 		comment.DELETE("/delete/:commentID", middlewares.AuthCheck(), controllers.DeleteComment())
 		comment.GET("/courseComments/:courseID", controllers.GetCourseComments())
-		comment.GET("/userComments/:userID", controllers.GetUserComments())
-		comment.GET("/comment/:commentID", controllers.GetComment())
+		comment.GET("/userComments", middlewares.AuthCheck(), controllers.GetUserComments())
+		comment.GET("/comment/:commentID", middlewares.AuthCheck(), controllers.GetComment())
 	}
 }

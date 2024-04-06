@@ -8,7 +8,7 @@ import (
 
 type Purchase struct {
 	ID        primitive.ObjectID `json:"_id" bson:"_id"`
-	UserID    primitive.ObjectID `json:"onwerID" bson:"ownerID"`
+	UserID    primitive.ObjectID `json:"ownerID" bson:"ownerID"`
 	CourseID  primitive.ObjectID `json:"courseID" bson:"courseID"`
 	CreatedAt time.Time          `json:"createdAt" bson:"createdAt"`
 	InvoiceID primitive.ObjectID `json:"invoiceID" bson:"invoiceID"`

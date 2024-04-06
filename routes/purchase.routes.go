@@ -10,6 +10,6 @@ func PurchaseRoutes(incomingRoute *gin.Engine) {
 	purchases := incomingRoute.Group("/api/v1/purchases")
 	{
 		purchases.POST("/purchase/:courseID", middlewares.AuthCheck(), controllers.PurchaseCourse())
-		purchases.GET("/userPurchases/:userID", middlewares.AuthCheck(), controllers.GetUserPurchasedCourses())
+		purchases.GET("/userPurchases", middlewares.AuthCheck(), controllers.GetUserPurchasedCourses())
 	}
 }

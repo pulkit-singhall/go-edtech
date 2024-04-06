@@ -108,6 +108,12 @@ func GetCoursesByOwnerID() gin.HandlerFunc {
 	}
 }
 
+func GetCoursesByCategory() gin.HandlerFunc {
+	return func(c *gin.Context) {
+
+	}
+}
+
 func GetCourseByID() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		_, cancel := context.WithTimeout(context.Background(), 100*time.Second)

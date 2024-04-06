@@ -169,6 +169,35 @@ func GetUserComments() gin.HandlerFunc {
 
 func GetComment() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		
+		_, cancel := context.WithTimeout(context.Background(), 100*time.Second)
+		defer cancel()
+		email := c.Keys["email"]
+		commentId := c.Param("commentID")
+		if commentId == "" {
+			c.AbortWithStatusJSON(400, gin.H{"error": utils.QueryParamMissing.Error(), "detail": "comment ID is required"})
+			return
+		}
+		var user *models.User
+		decErr := userCollection.FindOne(context.Background(), bson.M{"email": email}).Decode(&user)
+		if decErr != nil {
+			c.AbortWithStatusJSON(412, gin.H{"error": utils.UserNotFound.Error(), "detail": decErr.Error()})
+			return
+		}
+		cId, hexErr := primitive.ObjectIDFromHex(commentId)
+		if hexErr != nil {
+			c.AbortWithStatusJSON(500, gin.H{"error": utils.HexIdError.Error(), "detail": hexErr.Error()})
+			return
+		}
+		var comment *models.Comment
+		decCErr := commentCollection.FindOne(context.Background(), bson.M{"_id": cId}).Decode(&comment)
+		if decCErr != nil {
+			c.AbortWithStatusJSON(412, gin.H{"error": utils.InternalServerError.Error(), "detail": decCErr.Error()})
+			return
+		}
+		if comment.OwnerID != user.ID {
+			c.AbortWithStatusJSON(400, gin.H{"error": utils.AuthorizeError.Error(), "detail": "user not authorize to see this comment"})
+			return
+		}
+		c.JSON(200, gin.H{"comment": comment})
 	}
 }
