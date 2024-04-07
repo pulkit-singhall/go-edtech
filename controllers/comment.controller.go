@@ -157,13 +157,64 @@ func GetCourseComments() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		_, cancel := context.WithTimeout(context.Background(), 100*time.Second)
 		defer cancel()
-
+		courseId:=c.Param("courseID")
+		cId,hexErr:=primitive.ObjectIDFromHex(courseId)
+		if hexErr!=nil{
+			c.AbortWithStatusJSON(500, gin.H{"error": utils.HexIdError.Error(), "detail": hexErr.Error()})
+			return
+		}
+		pipeline:=[]bson.M{}
+		match:=bson.M{
+			"$match": bson.M{
+				"courseID": cId,
+			},
+		}
+		pipeline = append(pipeline, match)
+		cur,pipeErr:=commentCollection.Aggregate(context.Background(), pipeline)
+		if pipeErr!=nil{
+			c.AbortWithStatusJSON(500, gin.H{"error": utils.PipelineError.Error(), "detail": pipeErr.Error()})
+			return
+		}
+		var comments []bson.M
+		curErr:=cur.All(context.Background(), &comments)
+		if curErr!=nil{
+			c.AbortWithStatusJSON(500, gin.H{"error": utils.InternalServerError.Error(), "detail": curErr.Error()})
+			return
+		}
+		c.JSON(200, gin.H{"course comments": comments})
 	}
 }
 
 func GetUserComments() gin.HandlerFunc {
 	return func(c *gin.Context) {
-
+		_, cancel := context.WithTimeout(context.Background(), 100*time.Second)
+		defer cancel()
+		email:=c.Keys["email"]
+		var user *models.User
+		decErr:=userCollection.FindOne(context.Background(), bson.M{"email": email}).Decode(&user)
+		if decErr!=nil{
+			c.AbortWithStatusJSON(412, gin.H{"error": utils.UserNotFound.Error(), "detail": decErr.Error()})
+			return
+		}
+		pipeline:=[]bson.M{}
+		match:=bson.M{
+			"$match": bson.M{
+				"ownerID": user.ID,
+			},
+		}
+		pipeline = append(pipeline, match)
+		cur,pipeErr:=commentCollection.Aggregate(context.Background(), pipeline)
+		if pipeErr!=nil{
+			c.AbortWithStatusJSON(500, gin.H{"error": utils.PipelineError.Error(), "detail": pipeErr.Error()})
+			return
+		}
+		var comments []bson.M
+		curErr:=cur.All(context.Background(), &comments)
+		if curErr!=nil{
+			c.AbortWithStatusJSON(500, gin.H{"error": utils.InternalServerError.Error(), "detail": curErr.Error()})
+			return
+		}
+		c.JSON(200, gin.H{"user comments": comments})
 	}
 }
 
