@@ -91,26 +91,68 @@ func DeleteCourse() gin.HandlerFunc {
 	}
 }
 
-func GetCoursesByOwnerID() gin.HandlerFunc {
+func GetUserCourses() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		_, cancel := context.WithTimeout(context.Background(), 100*time.Second)
 		defer cancel()
-		ownerId := c.Param("ownerID")
-		if ownerId == "" {
-			c.AbortWithStatusJSON(400, gin.H{"error": utils.QueryParamMissing.Error(), "detail": "owner ID is required"})
+		email := c.Keys["email"]
+		var user *models.User
+		decErr := userCollection.FindOne(context.Background(), bson.M{"email": email}).Decode(&user)
+		if decErr != nil {
+			c.AbortWithStatusJSON(412, gin.H{"error": utils.UserNotFound.Error(), "detail": decErr.Error()})
 			return
 		}
-		_, hexErr := primitive.ObjectIDFromHex(ownerId)
-		if hexErr != nil {
-			c.AbortWithStatusJSON(500, gin.H{"error": utils.HexIdError.Error(), "detail": hexErr.Error()})
+		pipeline := []bson.M{}
+		matchPipeline := bson.M{
+			"$match": bson.M{
+				"owner": user.ID,
+			},
+		}
+		pipeline = append(pipeline, matchPipeline)
+		cur, pipeErr := courseCollection.Aggregate(context.Background(), pipeline)
+		if pipeErr != nil {
+			c.AbortWithStatusJSON(500, gin.H{"error": utils.PipelineError.Error(), "detail": pipeErr.Error()})
 			return
 		}
+		var userCourses []bson.M
+		curErr := cur.All(context.Background(), &userCourses)
+		if curErr != nil {
+			c.AbortWithStatusJSON(500, gin.H{"error": utils.InternalServerError.Error(), "detail": curErr.Error()})
+			return
+		}
+		c.JSON(200, gin.H{"user courses": userCourses})
 	}
 }
 
 func GetCoursesByCategory() gin.HandlerFunc {
 	return func(c *gin.Context) {
-
+		_, cancel := context.WithTimeout(context.Background(), 100*time.Second)
+		defer cancel()
+		categoryId := c.Param("categoryID")
+		cId, hexErr := primitive.ObjectIDFromHex(categoryId)
+		if hexErr != nil {
+			c.AbortWithStatusJSON(500, gin.H{"error": utils.HexIdError.Error(), "detail": hexErr.Error()})
+			return
+		}
+		pipeline := []bson.M{}
+		matchPipeline := bson.M{
+			"$match": bson.M{
+				"tag": cId,
+			},
+		}
+		pipeline = append(pipeline, matchPipeline)
+		cur, pipeErr := courseCollection.Aggregate(context.Background(), pipeline)
+		if pipeErr != nil {
+			c.AbortWithStatusJSON(500, gin.H{"error": utils.PipelineError.Error(), "detail": pipeErr.Error()})
+			return
+		}
+		var categoryCourses []bson.M
+		curErr := cur.All(context.Background(), &categoryCourses)
+		if curErr != nil {
+			c.AbortWithStatusJSON(500, gin.H{"error": utils.InternalServerError.Error(), "detail": curErr.Error()})
+			return
+		}
+		c.JSON(200, gin.H{"category courses": categoryCourses})
 	}
 }
 

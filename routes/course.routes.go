@@ -11,7 +11,8 @@ func CourseRoutes(incomingRoute *gin.Engine) {
 	{
 		course.POST("/create", middlewares.AuthCheck(), controllers.CreateCourse())
 		course.DELETE("/delete/:courseID", middlewares.AuthCheck(), controllers.DeleteCourse())
-		course.GET("/getCourses/:ownerID", controllers.GetCoursesByOwnerID())
+		course.GET("/getUserCourses",middlewares.AuthCheck(), controllers.GetUserCourses())
 		course.GET("/course/:courseID", controllers.GetCourseByID())
+		course.GET("/getCategoryCourses/:categoryID", controllers.GetCoursesByCategory())
 	}
 }

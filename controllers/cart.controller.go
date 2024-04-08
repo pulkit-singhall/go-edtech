@@ -18,7 +18,7 @@ func RemoveCourseFromCart() gin.HandlerFunc {
 	}
 }
 
-func GetUserCart() gin.HandlerFunc {
+func GetUserCartCourses() gin.HandlerFunc {
 	return func(c *gin.Context) {
 
 	}

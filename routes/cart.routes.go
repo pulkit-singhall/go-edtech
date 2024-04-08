@@ -11,6 +11,6 @@ func CartRoutes(incomingRoute *gin.Engine){
 	{
 		cart.POST("/addCourse/:courseID", middlewares.AuthCheck(), controllers.AddCourseToCart())
 		cart.DELETE("/removeCourse/:courseID", middlewares.AuthCheck(), controllers.RemoveCourseFromCart())
-		cart.GET("/userCart", middlewares.AuthCheck(), controllers.GetUserCart())
+		cart.GET("/userCart", middlewares.AuthCheck(), controllers.GetUserCartCourses())
 	}
 }
