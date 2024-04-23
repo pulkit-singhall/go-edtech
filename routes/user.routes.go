@@ -17,5 +17,6 @@ func UserRoutes(incomingRoute *gin.Engine) {
 		user.GET("/getAllUsers", controllers.GetAllUsers())
 		user.POST("/uploadAvatar", middlewares.AuthCheck(), controllers.UploadUserAvatar())
 		user.POST("/changeAvatar", middlewares.AuthCheck(), controllers.ChangeUserAvatar())
+		user.PATCH("/verifyEmail", middlewares.AuthCheck(), controllers.VerifyEmail())
 	}
 }

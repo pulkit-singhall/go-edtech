@@ -272,3 +272,23 @@ func ChangeUserAvatar() gin.HandlerFunc {
 		c.JSON(200, gin.H{"message": "avatar updated successfully", "success": "true"})
 	}
 }
+
+func VerifyEmail() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		_,cancel:=context.WithTimeout(context.Background(), 100*time.Second)
+		defer cancel()
+		email:=c.Keys["email"]
+		var user *models.User
+		decErr:=userCollection.FindOne(context.Background(), bson.M{"email": email}).Decode(&user)
+		if decErr!=nil{
+			c.AbortWithStatusJSON(412, gin.H{"error": utils.UserNotFound.Error(), "detail": decErr.Error()})
+			return
+		}
+		emailErr:=middlewares.SendEmail(email.(string), user.First_name + " " + user.Last_name)
+		if emailErr!=nil{
+			c.AbortWithStatusJSON(500, gin.H{"error": utils.InternalServerError.Error(), "detail": emailErr.Error()})
+			return
+		}
+		c.JSON(201, gin.H{"message": "verification email sent"})
+	}
+}
